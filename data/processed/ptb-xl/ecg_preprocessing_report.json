@@ -1,0 +1,16 @@
+{
+  "total_labelled_ecgs": 21388,
+  "train_records": 17084,
+  "validation_records": 2146,
+  "test_records": 2158,
+  "classes": [
+    "NORM",
+    "MI",
+    "STTC",
+    "CD",
+    "HYP"
+  ],
+  "sampling_rate_hz": 100,
+  "time_points_per_record": 1000,
+  "leads_per_record": 12
+}

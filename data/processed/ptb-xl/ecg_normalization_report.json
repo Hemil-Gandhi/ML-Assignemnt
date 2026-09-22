@@ -1,0 +1,22 @@
+{
+  "normalization_method": "Training-set mean and standard deviation per ECG lead",
+  "training_records_used": 17084,
+  "invalid_training_records": 0,
+  "sampling_rate_hz": 100,
+  "time_points_per_ecg": 1000,
+  "number_of_leads": 12,
+  "lead_names": [
+    "I",
+    "II",
+    "III",
+    "AVR",
+    "AVL",
+    "AVF",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6"
+  ]
+}
