@@ -1,0 +1,7 @@
+metric,value
+ROC-AUC Macro,0.9015
+ROC-AUC Micro,0.9185
+Average Precision Macro,0.7618
+Average Precision Micro,0.8239
+F1 Macro,0.7036
+F1 Micro,0.7489

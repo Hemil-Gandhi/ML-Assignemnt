@@ -1,0 +1,65 @@
+{
+    "cardiovascular": {
+        "models": [
+            {
+                "model": "Logistic Regression",
+                "accuracy": 0.7312600850814142,
+                "precision": 0.760400747155714,
+                "recall": 0.6652800475412272,
+                "f1": 0.7096671949286846,
+                "roc_auc": 0.7938238781503816
+            },
+            {
+                "model": "Random Forest",
+                "accuracy": 0.7124101510928561,
+                "precision": 0.7103293413173652,
+                "recall": 0.7049472589511216,
+                "f1": 0.7076280665125643,
+                "roc_auc": 0.7668691606656349
+            },
+            {
+                "model": "HistGradientBoosting",
+                "accuracy": 0.7366876925333724,
+                "precision": 0.7534290785864127,
+                "recall": 0.6936562175011143,
+                "f1": 0.7223081683168316,
+                "roc_auc": 0.8037965144396555
+            }
+        ]
+    },
+    "ptbxl_cnn": {
+        "ROC-AUC Macro": 0.9015,
+        "ROC-AUC Micro": 0.9185,
+        "Average Precision Macro": 0.7618,
+        "Average Precision Micro": 0.8239,
+        "F1 Macro": 0.7036,
+        "F1 Micro": 0.7489
+    },
+    "ptbxl_interpretation": [
+        {
+            "class": "NORM",
+            "top_lead": "aVR",
+            "top_lead_importance": 0.15154487
+        },
+        {
+            "class": "MI",
+            "top_lead": "V2",
+            "top_lead_importance": 0.067743465
+        },
+        {
+            "class": "STTC",
+            "top_lead": "aVR",
+            "top_lead_importance": 0.18701383
+        },
+        {
+            "class": "CD",
+            "top_lead": "V1",
+            "top_lead_importance": 0.10083506
+        },
+        {
+            "class": "HYP",
+            "top_lead": "V1",
+            "top_lead_importance": 0.17885499
+        }
+    ]
+}

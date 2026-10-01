@@ -1,0 +1,45 @@
+diagnostic_class,description
+CD,left anterior fascicular block
+CD,incomplete right bundle branch block
+CD,first degree AV block
+CD,non-specific intraventricular conduction disturbance (block)
+CD,complete right bundle branch block
+CD,complete left bundle branch block
+CD,left posterior fascicular block
+CD,Wolf-Parkinson-White syndrome
+CD,incomplete left bundle branch block
+CD,third degree AV block
+CD,second degree AV block
+HYP,left ventricular hypertrophy
+HYP,left atrial overload/enlargement
+HYP,right ventricular hypertrophy
+HYP,right atrial overload/enlargement
+HYP,septal hypertrophy
+MI,inferior myocardial infarction
+MI,anteroseptal myocardial infarction
+MI,inferolateral myocardial infarction
+MI,anterior myocardial infarction
+MI,anterolateral myocardial infarction
+MI,subendocardial injury in anteroseptal leads
+MI,lateral myocardial infarction
+MI,subendocardial injury in anterolateral leads
+MI,inferoposterolateral myocardial infarction
+MI,inferoposterior myocardial infarction
+MI,subendocardial injury in inferior leads
+MI,subendocardial injury in lateral leads
+MI,posterior myocardial infarction
+MI,subendocardial injury in inferolateral leads
+NORM,normal ECG
+STTC,non-diagnostic T abnormalities
+STTC,non-specific ST changes
+STTC,digitalis-effect
+STTC,long QT-interval
+STTC,non-specific ischemic
+STTC,ischemic in anterolateral leads
+STTC,ischemic in inferior leads
+STTC,ischemic in inferolateral leads
+STTC,ischemic in anteroseptal leads
+STTC,ischemic in lateral leads
+STTC,ST-T changes compatible with ventricular aneurysm
+STTC,electrolytic disturbance or drug (former EDIS)
+STTC,ischemic in anterior leads

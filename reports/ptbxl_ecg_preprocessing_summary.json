@@ -1,0 +1,16 @@
+{
+    "sampling_frequency": 100,
+    "num_leads": 12,
+    "target_classes": [
+        "NORM",
+        "MI",
+        "STTC",
+        "CD",
+        "HYP"
+    ],
+    "task": "multi-label classification",
+    "removed_unlabeled_records": 411,
+    "train_samples": 17084,
+    "validation_samples": 2146,
+    "test_samples": 2158
+}

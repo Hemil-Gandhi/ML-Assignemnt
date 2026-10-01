@@ -1,0 +1,6 @@
+property,cardiovascular,ptbxl
+Data modality,Tabular,12-lead ECG
+Approximate samples,68205,21799
+Number of input variables,13,12
+Prediction type,Binary,Multi-label
+Target,cardio,"NORM, MI, STTC, CD, HYP"

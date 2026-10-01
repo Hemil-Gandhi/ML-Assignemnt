@@ -1,0 +1,14 @@
+{
+    "total_recordings": 21799,
+    "total_patients": 18869,
+    "train_recordings": 17418,
+    "validation_recordings": 2183,
+    "test_recordings": 2198,
+    "diagnostic_classes": [
+        "NORM",
+        "MI",
+        "STTC",
+        "CD",
+        "HYP"
+    ]
+}

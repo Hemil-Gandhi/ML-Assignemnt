@@ -1,0 +1,5 @@
+Model,Dataset,Task,F1
+Logistic Regression,Cardiovascular,Binary,0.7096671949286846
+Random Forest,Cardiovascular,Binary,0.7076280665125643
+HistGradientBoosting,Cardiovascular,Binary,0.7223081683168316
+PTB-XL 1D CNN,PTB-XL,Multi-label,0.7036

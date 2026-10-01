@@ -1,0 +1,7 @@
+aspect,cardiovascular,ptbxl
+Preprocessing,Cleaning + preprocessing + encoding/scaling,ECG normalization
+Feature representation,Hand-defined tabular variables,Raw 12-lead signal
+Model,Traditional ML,1D CNN
+Validation,Stratified cross-validation,Train/validation/test split
+Final evaluation,Untouched test set,Untouched test set
+Interpretation,Coefficients / feature importance,Gradient-based saliency

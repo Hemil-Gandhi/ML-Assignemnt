@@ -1,0 +1,10 @@
+{
+    "model": "PTB-XL CNN baseline",
+    "threshold": 0.5,
+    "macro_roc_auc": 0.9015137935191202,
+    "micro_roc_auc": 0.9185377916828776,
+    "macro_average_precision": 0.7618049559806542,
+    "micro_average_precision": 0.8239133834262861,
+    "macro_f1": 0.6470011670791271,
+    "micro_f1": 0.7326162120630042
+}
