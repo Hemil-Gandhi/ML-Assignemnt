@@ -1,781 +1,200 @@
+"""Simplified Tkinter GUI: cardiovascular form (loop-generated) + PTB-XL upload."""
+import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
 
-from src.models import (
-    load_ptbxl_model,
-    load_ptbxl_thresholds,
-    load_tabular_models,
-)
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from src.models import load_ptbxl_model, load_ptbxl_thresholds, load_tabular_models
 from src.prediction import (
+    cardiovascular_majority_vote,
     load_ecg_record,
     predict_cardiovascular,
     predict_ptbxl,
-    cardiovascular_majority_vote,
 )
+
+NUMERIC_FIELDS = [
+    ("Age", "age_years", "int"),
+    ("Height (cm)", "height", "int"),
+    ("Weight (kg)", "weight", "float"),
+    ("Systolic BP", "ap_hi", "int"),
+    ("Diastolic BP", "ap_lo", "int"),
+]
+
+CHOICE_FIELDS = [
+    ("Gender", "gender", ["Female", "Male"]),
+    ("Cholesterol", "cholesterol", ["Normal", "Above Normal", "Well Above Normal"]),
+    ("Glucose", "gluc", ["Normal", "Above Normal", "Well Above Normal"]),
+    ("Smoking", "smoke", ["No", "Yes"]),
+    ("Alcohol", "alco", ["No", "Yes"]),
+    ("Active", "active", ["No", "Yes"]),
+]
+
+FIELD_LABELS = {key: label for label, key, _ in NUMERIC_FIELDS}
+
+CHOICE_MAP = {
+    "gender": {"Female": 2, "Male": 1},
+    "cholesterol": {"Normal": 1, "Above Normal": 2, "Well Above Normal": 3},
+    "gluc": {"Normal": 1, "Above Normal": 2, "Well Above Normal": 3},
+    "smoke": {"No": 0, "Yes": 1},
+    "alco": {"No": 0, "Yes": 1},
+    "active": {"No": 0, "Yes": 1},
+}
 
 
 class HeartDiseaseApp:
-    """Tkinter application for cardiovascular and PTB-XL prediction."""
-
     def __init__(self, root):
         self.root = root
         self.root.title("Heart Disease ML Application")
-        self.root.geometry("900x700")
-        self.root.resizable(False, False)
-
-        # -----------------------------------------------------
-        # Load models
-        # -----------------------------------------------------
-
+        self.root.geometry("800x650")
         try:
             self.tabular_models = load_tabular_models()
             self.ptbxl_model = load_ptbxl_model()
             self.thresholds = load_ptbxl_thresholds()
-
         except Exception as error:
-            messagebox.showerror(
-                "Model Loading Error",
-                f"Could not load the models.\n\n{error}",
-            )
+            messagebox.showerror("Model Loading Error", str(error))
             self.root.destroy()
             return
-
-        # -----------------------------------------------------
-        # Application state
-        # -----------------------------------------------------
-
         self.prediction_type = tk.StringVar(value="Cardiovascular")
-
         self.ecg_path = None
-
-        # -----------------------------------------------------
-        # Build interface
-        # -----------------------------------------------------
-
-        self.create_widgets()
-
-    # =========================================================
-    # Main interface
-    # =========================================================
-
-    def create_widgets(self):
-        title = ttk.Label(
-            self.root,
-            text="Heart Disease ML Application",
-            font=("Arial", 20, "bold"),
-        )
-
-        title.pack(pady=(20, 5))
-
-        subtitle = ttk.Label(
-            self.root,
-            text="Machine Learning Based Prediction System",
-            font=("Arial", 11),
-        )
-
-        subtitle.pack(pady=(0, 15))
-
-        # -----------------------------------------------------
-        # Prediction type
-        # -----------------------------------------------------
-
-        type_frame = ttk.LabelFrame(
-            self.root,
-            text="Prediction Type",
-            padding=15,
-        )
-
-        type_frame.pack(
-            fill="x",
-            padx=25,
-            pady=10,
-        )
-
-        ttk.Radiobutton(
-            type_frame,
-            text="Cardiovascular Disease",
-            variable=self.prediction_type,
-            value="Cardiovascular",
-            command=self.switch_prediction_type,
-        ).pack(
-            side="left",
-            padx=20,
-        )
-
-        ttk.Radiobutton(
-            type_frame,
-            text="PTB-XL ECG",
-            variable=self.prediction_type,
-            value="PTB-XL",
-            command=self.switch_prediction_type,
-        ).pack(
-            side="left",
-            padx=20,
-        )
-
-        # -----------------------------------------------------
-        # Content container
-        # -----------------------------------------------------
-
-        self.content_frame = ttk.Frame(self.root)
-
-        self.content_frame.pack(
-            fill="both",
-            expand=True,
-            padx=25,
-        )
-
-        self.create_cardiovascular_form()
-
-    # =========================================================
-    # Cardiovascular form
-    # =========================================================
-
-    def create_cardiovascular_form(self):
-        self.clear_content()
-
-        form_frame = ttk.LabelFrame(
-            self.content_frame,
-            text="Patient Information",
-            padding=15,
-        )
-
-        form_frame.pack(
-            fill="x",
-            pady=10,
-        )
-
         self.entries = {}
+        self.vars = {}
+        self._build_shell()
+        self.show_cardio()
 
-        fields = [
-            ("Age", "age_years"),
-            ("Height (cm)", "height"),
-            ("Weight (kg)", "weight"),
-            ("Systolic BP", "ap_hi"),
-            ("Diastolic BP", "ap_lo"),
-        ]
+    # ----- shell -----
+    def _build_shell(self):
+        ttk.Label(self.root, text="Heart Disease ML Application",
+                  font=("Arial", 18, "bold")).pack(pady=(15, 0))
+        ttk.Label(self.root, text="Simplified prediction demo",
+                  font=("Arial", 10)).pack(pady=(0, 10))
+        type_frame = ttk.LabelFrame(self.root, text="Prediction Type", padding=10)
+        type_frame.pack(fill="x", padx=20, pady=5)
+        for text, val in [("Cardiovascular", "Cardiovascular"), ("PTB-XL ECG", "PTB-XL")]:
+            ttk.Radiobutton(type_frame, text=text, variable=self.prediction_type,
+                            value=val, command=self._switch).pack(side="left", padx=15)
+        self.content = ttk.Frame(self.root)
+        self.content.pack(fill="both", expand=True, padx=20)
 
-        for row, (label, key) in enumerate(fields):
-            ttk.Label(
-                form_frame,
-                text=label,
-            ).grid(
-                row=row,
-                column=0,
-                sticky="w",
-                padx=10,
-                pady=6,
-            )
+    def _switch(self):
+        self.show_cardio() if self.prediction_type.get() == "Cardiovascular" else self.show_ecg()
 
-            entry = ttk.Entry(
-                form_frame,
-                width=25,
-            )
+    def _clear(self):
+        for w in self.content.winfo_children():
+            w.destroy()
 
-            entry.grid(
-                row=row,
-                column=1,
-                padx=10,
-                pady=6,
-            )
+    # ----- cardio form -----
+    def show_cardio(self):
+        self._clear()
+        form = ttk.LabelFrame(self.content, text="Patient Information", padding=10)
+        form.pack(fill="x", pady=5)
+        for row, (label, key, kind) in enumerate(NUMERIC_FIELDS):
+            ttk.Label(form, text=label).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+            e = ttk.Entry(form, width=20)
+            e.grid(row=row, column=1, padx=8, pady=4)
+            self.entries[key] = (e, kind)
+        for row, (label, key, values) in enumerate(CHOICE_FIELDS):
+            r = row if row < 5 else 5
+            c = 2 if row < 5 else 0  # last row wraps
+            ttk.Label(form, text=label).grid(row=r if c == 2 else 6, column=c,
+                                             sticky="w", padx=8, pady=4)
+            var = tk.StringVar(value=values[0] if key != "active" else "Yes")
+            ttk.Combobox(form, textvariable=var, values=values,
+                         state="readonly", width=18).grid(
+                row=r if c == 2 else 6, column=c + 1, padx=8, pady=4)
+            self.vars[key] = var
+        btns = ttk.Frame(self.content)
+        btns.pack(pady=10)
+        ttk.Button(btns, text="Predict", command=self.do_cardio).pack(side="left", padx=8)
+        ttk.Button(btns, text="Reset", command=self.show_cardio).pack(side="left", padx=8)
+        self.results = ttk.LabelFrame(self.content, text="Results", padding=10)
+        self.results.pack(fill="both", expand=True, pady=5)
 
-            self.entries[key] = entry
+    def _read_patient(self):
+        patient = {}
+        for key, (entry, kind) in self.entries.items():
+            val = entry.get().strip()
+            label = FIELD_LABELS.get(key, key)
+            if not val:
+                raise ValueError(f"{label} is required.")
+            try:
+                patient[key] = int(val) if kind == "int" else float(val)
+            except ValueError:
+                raise ValueError(f"{label} must be a number.") from None
+        for key, var in self.vars.items():
+            patient[key] = CHOICE_MAP[key][var.get()]
+        return patient
 
-        # -----------------------------------------------------
-        # Gender
-        # -----------------------------------------------------
-
-        ttk.Label(
-            form_frame,
-            text="Gender",
-        ).grid(
-            row=0,
-            column=2,
-            sticky="w",
-            padx=10,
-            pady=6,
-        )
-
-        self.gender_var = tk.StringVar(value="Female")
-
-        gender_box = ttk.Combobox(
-            form_frame,
-            textvariable=self.gender_var,
-            values=["Female", "Male"],
-            state="readonly",
-            width=22,
-        )
-
-        gender_box.grid(
-            row=0,
-            column=3,
-            padx=10,
-            pady=6,
-        )
-
-        # -----------------------------------------------------
-        # Cholesterol
-        # -----------------------------------------------------
-
-        ttk.Label(
-            form_frame,
-            text="Cholesterol",
-        ).grid(
-            row=1,
-            column=2,
-            sticky="w",
-            padx=10,
-            pady=6,
-        )
-
-        self.cholesterol_var = tk.StringVar(value="Normal")
-
-        cholesterol_box = ttk.Combobox(
-            form_frame,
-            textvariable=self.cholesterol_var,
-            values=[
-                "Normal",
-                "Above Normal",
-                "Well Above Normal",
-            ],
-            state="readonly",
-            width=22,
-        )
-
-        cholesterol_box.grid(
-            row=1,
-            column=3,
-            padx=10,
-            pady=6,
-        )
-
-        # -----------------------------------------------------
-        # Glucose
-        # -----------------------------------------------------
-
-        ttk.Label(
-            form_frame,
-            text="Glucose",
-        ).grid(
-            row=2,
-            column=2,
-            sticky="w",
-            padx=10,
-            pady=6,
-        )
-
-        self.gluc_var = tk.StringVar(value="Normal")
-
-        gluc_box = ttk.Combobox(
-            form_frame,
-            textvariable=self.gluc_var,
-            values=[
-                "Normal",
-                "Above Normal",
-                "Well Above Normal",
-            ],
-            state="readonly",
-            width=22,
-        )
-
-        gluc_box.grid(
-            row=2,
-            column=3,
-            padx=10,
-            pady=6,
-        )
-
-        # -----------------------------------------------------
-        # Smoking
-        # -----------------------------------------------------
-
-        ttk.Label(
-            form_frame,
-            text="Smoking",
-        ).grid(
-            row=3,
-            column=2,
-            sticky="w",
-            padx=10,
-            pady=6,
-        )
-
-        self.smoke_var = tk.StringVar(value="No")
-
-        smoke_box = ttk.Combobox(
-            form_frame,
-            textvariable=self.smoke_var,
-            values=["No", "Yes"],
-            state="readonly",
-            width=22,
-        )
-
-        smoke_box.grid(
-            row=3,
-            column=3,
-            padx=10,
-            pady=6,
-        )
-
-        # -----------------------------------------------------
-        # Alcohol
-        # -----------------------------------------------------
-
-        ttk.Label(
-            form_frame,
-            text="Alcohol Consumption",
-        ).grid(
-            row=4,
-            column=2,
-            sticky="w",
-            padx=10,
-            pady=6,
-        )
-
-        self.alco_var = tk.StringVar(value="No")
-
-        alco_box = ttk.Combobox(
-            form_frame,
-            textvariable=self.alco_var,
-            values=["No", "Yes"],
-            state="readonly",
-            width=22,
-        )
-
-        alco_box.grid(
-            row=4,
-            column=3,
-            padx=10,
-            pady=6,
-        )
-
-        # -----------------------------------------------------
-        # Physical activity
-        # -----------------------------------------------------
-
-        ttk.Label(
-            form_frame,
-            text="Physically Active",
-        ).grid(
-            row=5,
-            column=2,
-            sticky="w",
-            padx=10,
-            pady=6,
-        )
-
-        self.active_var = tk.StringVar(value="Yes")
-
-        active_box = ttk.Combobox(
-            form_frame,
-            textvariable=self.active_var,
-            values=["No", "Yes"],
-            state="readonly",
-            width=22,
-        )
-
-        active_box.grid(
-            row=5,
-            column=3,
-            padx=10,
-            pady=6,
-        )
-
-        # -----------------------------------------------------
-        # Buttons
-        # -----------------------------------------------------
-
-        button_frame = ttk.Frame(self.content_frame)
-
-        button_frame.pack(pady=15)
-
-        ttk.Button(
-            button_frame,
-            text="Predict",
-            command=self.predict_cardiovascular,
-        ).pack(
-            side="left",
-            padx=10,
-        )
-
-        ttk.Button(
-            button_frame,
-            text="Reset",
-            command=self.reset,
-        ).pack(
-            side="left",
-            padx=10,
-        )
-
-        # -----------------------------------------------------
-        # Results
-        # -----------------------------------------------------
-
-        self.results_frame = ttk.LabelFrame(
-            self.content_frame,
-            text="Prediction Results",
-            padding=15,
-        )
-
-        self.results_frame.pack(
-            fill="both",
-            expand=True,
-            pady=5,
-        )
-
-    # =========================================================
-    # PTB-XL interface
-    # =========================================================
-
-    def create_ptbxl_form(self):
-        self.clear_content()
-
-        upload_frame = ttk.LabelFrame(
-            self.content_frame,
-            text="PTB-XL ECG",
-            padding=20,
-        )
-
-        upload_frame.pack(
-            fill="x",
-            pady=20,
-        )
-
-        ttk.Label(
-            upload_frame,
-            text=(
-                "Select a PTB-XL ECG record (.hea).\n"
-                "The corresponding .dat file must be present."
-            ),
-        ).pack(pady=(0, 15))
-
-        ttk.Button(
-            upload_frame,
-            text="Select ECG Record",
-            command=self.select_ecg,
-        ).pack()
-
-        self.ecg_label = ttk.Label(
-            upload_frame,
-            text="No ECG record selected.",
-        )
-
-        self.ecg_label.pack(pady=15)
-
-        button_frame = ttk.Frame(self.content_frame)
-
-        button_frame.pack(pady=10)
-
-        ttk.Button(
-            button_frame,
-            text="Predict",
-            command=self.predict_ptbxl,
-        ).pack(
-            side="left",
-            padx=10,
-        )
-
-        ttk.Button(
-            button_frame,
-            text="Reset",
-            command=self.reset,
-        ).pack(
-            side="left",
-            padx=10,
-        )
-
-        self.results_frame = ttk.LabelFrame(
-            self.content_frame,
-            text="ECG Prediction Results",
-            padding=15,
-        )
-
-        self.results_frame.pack(
-            fill="both",
-            expand=True,
-            pady=10,
-        )
-
-    # =========================================================
-    # Switch prediction type
-    # =========================================================
-
-    def switch_prediction_type(self):
-        if self.prediction_type.get() == "Cardiovascular":
-            self.create_cardiovascular_form()
-        else:
-            self.create_ptbxl_form()
-
-    # =========================================================
-    # Cardiovascular prediction
-    # =========================================================
-
-    def predict_cardiovascular(self):
+    def do_cardio(self):
         try:
-            patient = {
-                "age_years": self.get_integer(
-                    "age_years",
-                    "Age",
-                ),
-                "gender": (1 if self.gender_var.get() == "Male" else 2),
-                "height": self.get_integer(
-                    "height",
-                    "Height",
-                ),
-                "weight": self.get_float(
-                    "weight",
-                    "Weight",
-                ),
-                "ap_hi": self.get_integer(
-                    "ap_hi",
-                    "Systolic BP",
-                ),
-                "ap_lo": self.get_integer(
-                    "ap_lo",
-                    "Diastolic BP",
-                ),
-                "cholesterol": {
-                    "Normal": 1,
-                    "Above Normal": 2,
-                    "Well Above Normal": 3,
-                }[self.cholesterol_var.get()],
-                "gluc": {
-                    "Normal": 1,
-                    "Above Normal": 2,
-                    "Well Above Normal": 3,
-                }[self.gluc_var.get()],
-                "smoke": (1 if self.smoke_var.get() == "Yes" else 0),
-                "alco": (1 if self.alco_var.get() == "Yes" else 0),
-                "active": (1 if self.active_var.get() == "Yes" else 0),
-            }
-
-            results = predict_cardiovascular(
-                self.tabular_models,
-                patient,
-            )
-
+            results = predict_cardiovascular(self.tabular_models, self._read_patient())
             overall = cardiovascular_majority_vote(results)
+            for w in self.results.winfo_children():
+                w.destroy()
+            for name, r in results.items():
+                txt = "Positive" if r["prediction"] == 1 else "Negative"
+                ttk.Label(self.results, text=f"{name}: {txt} ({r['probability']:.1%})").pack(anchor="w")
+            ttk.Separator(self.results, orient="horizontal").pack(fill="x", pady=8)
+            overall_txt = "Positive" if overall["prediction"] == 1 else "Negative"
+            ttk.Label(self.results, text=f"Overall: {overall_txt} "
+                      f"(+{overall['positive_votes']}/-{overall['negative_votes']})",
+                      font=("Arial", 12, "bold")).pack()
+        except ValueError as e:
+            messagebox.showerror("Invalid Input", str(e))
+        except Exception as e:
+            messagebox.showerror("Prediction Error", str(e))
 
-            self.display_cardiovascular_results(
-                results,
-                overall,
-            )
+    # ----- ecg form -----
+    def show_ecg(self):
+        self._clear()
+        self.ecg_path = None
+        up = ttk.LabelFrame(self.content, text="PTB-XL ECG", padding=15)
+        up.pack(fill="x", pady=10)
+        ttk.Label(up, text="Select a .hea record (matching .dat required).").pack(pady=5)
+        ttk.Button(up, text="Select ECG Record", command=self.pick_ecg).pack()
+        self.ecg_label = ttk.Label(up, text="No ECG record selected.")
+        self.ecg_label.pack(pady=10)
+        btns = ttk.Frame(self.content)
+        btns.pack(pady=5)
+        ttk.Button(btns, text="Predict", command=self.do_ecg).pack(side="left", padx=8)
+        ttk.Button(btns, text="Reset", command=self.show_ecg).pack(side="left", padx=8)
+        self.results = ttk.LabelFrame(self.content, text="ECG Results", padding=10)
+        self.results.pack(fill="both", expand=True, pady=5)
 
-        except ValueError as error:
-            messagebox.showerror(
-                "Invalid Input",
-                str(error),
-            )
-
-        except Exception as error:
-            messagebox.showerror(
-                "Prediction Error",
-                str(error),
-            )
-
-    # =========================================================
-    # ECG file selection
-    # =========================================================
-
-    def select_ecg(self):
-        file_path = filedialog.askopenfilename(
-            title="Select PTB-XL ECG Record",
-            filetypes=[
-                ("WFDB Header", "*.hea"),
-                ("All Files", "*.*"),
-            ],
-        )
-
-        if not file_path:
+    def pick_ecg(self):
+        p = filedialog.askopenfilename(title="Select ECG",
+                                       filetypes=[("WFDB Header", "*.hea"), ("All", "*.*")])
+        if not p:
             return
-
-        path = Path(file_path)
-
-        if path.suffix.lower() != ".hea":
-            messagebox.showerror(
-                "Invalid File",
-                "Please select a PTB-XL .hea file.",
-            )
+        path = Path(p)
+        if path.suffix.lower() != ".hea" or not path.with_suffix(".dat").exists():
+            messagebox.showerror("Invalid File", "Pick a .hea with a matching .dat file.")
             return
-
-        dat_path = path.with_suffix(".dat")
-
-        if not dat_path.exists():
-            messagebox.showerror(
-                "Missing ECG Data",
-                (
-                    "The corresponding .dat file was not found.\n\n"
-                    f"Expected:\n{dat_path}"
-                ),
-            )
-            return
-
         self.ecg_path = path.with_suffix("")
-
         self.ecg_label.config(text=f"Selected: {path.name}")
 
-    # =========================================================
-    # PTB-XL prediction
-    # =========================================================
-
-    def predict_ptbxl(self):
+    def do_ecg(self):
         if self.ecg_path is None:
-            messagebox.showerror(
-                "No ECG Selected",
-                "Please select a PTB-XL ECG record first.",
-            )
+            messagebox.showerror("No ECG", "Select an ECG record first.")
             return
-
         try:
-            signal = load_ecg_record(self.ecg_path)
-
-            results = predict_ptbxl(
-                self.ptbxl_model,
-                signal,
-                self.thresholds,
-            )
-
-            self.display_ptbxl_results(results)
-
-        except Exception as error:
-            messagebox.showerror(
-                "ECG Prediction Error",
-                str(error),
-            )
-
-    # =========================================================
-    # Display cardiovascular results
-    # =========================================================
-
-    def display_cardiovascular_results(
-        self,
-        results,
-        overall,
-    ):
-        self.clear_results()
-
-        for model_name, result in results.items():
-
-            prediction_text = "Positive" if result["prediction"] == 1 else "Negative"
-
-            probability = result["probability"]
-
-            ttk.Label(
-                self.results_frame,
-                text=(f"{model_name}: " f"{prediction_text} " f"({probability:.2%})"),
-                font=("Arial", 11),
-            ).pack(
-                anchor="w",
-                pady=4,
-            )
-
-        ttk.Separator(
-            self.results_frame,
-            orient="horizontal",
-        ).pack(
-            fill="x",
-            pady=10,
-        )
-
-        overall_text = "Positive" if overall["prediction"] == 1 else "Negative"
-
-        ttk.Label(
-            self.results_frame,
-            text=f"Overall Result: {overall_text}",
-            font=("Arial", 14, "bold"),
-        ).pack(pady=5)
-
-        ttk.Label(
-            self.results_frame,
-            text=(
-                f"Positive votes: "
-                f"{overall['positive_votes']}    "
-                f"Negative votes: "
-                f"{overall['negative_votes']}"
-            ),
-        ).pack()
-
-    # =========================================================
-    # Display PTB-XL results
-    # =========================================================
-
-    def display_ptbxl_results(self, results):
-        self.clear_results()
-
-        for class_name, result in results.items():
-
-            status = "Positive" if result["positive"] else "Negative"
-
-            ttk.Label(
-                self.results_frame,
-                text=(f"{class_name}: " f"{status} " f"({result['probability']:.2%})"),
-                font=("Arial", 11),
-            ).pack(
-                anchor="w",
-                pady=4,
-            )
-
-    # =========================================================
-    # Input helpers
-    # =========================================================
-
-    def get_integer(self, key, field_name):
-        value = self.entries[key].get().strip()
-
-        if not value:
-            raise ValueError(f"{field_name} is required.")
-
-        try:
-            return int(value)
-
-        except ValueError:
-            raise ValueError(f"{field_name} must be an integer.")
-
-    def get_float(self, key, field_name):
-        value = self.entries[key].get().strip()
-
-        if not value:
-            raise ValueError(f"{field_name} is required.")
-
-        try:
-            return float(value)
-
-        except ValueError:
-            raise ValueError(f"{field_name} must be a number.")
-
-    # =========================================================
-    # Reset
-    # =========================================================
-
-    def reset(self):
-        self.ecg_path = None
-
-        if self.prediction_type.get() == "Cardiovascular":
-            self.create_cardiovascular_form()
-        else:
-            self.create_ptbxl_form()
-
-    # =========================================================
-    # Utility methods
-    # =========================================================
-
-    def clear_content(self):
-        for widget in self.content_frame.winfo_children():
-            widget.destroy()
-
-    def clear_results(self):
-        if hasattr(self, "results_frame"):
-            for widget in self.results_frame.winfo_children():
-                widget.destroy()
+            results = predict_ptbxl(self.ptbxl_model, load_ecg_record(self.ecg_path),
+                                    self.thresholds)
+            for w in self.results.winfo_children():
+                w.destroy()
+            for cls, r in results.items():
+                ttk.Label(self.results,
+                          text=f"{cls}: {'Positive' if r['positive'] else 'Negative'} "
+                               f"({r['probability']:.1%})").pack(anchor="w")
+        except Exception as e:
+            messagebox.showerror("ECG Error", str(e))
 
 
 def main():
     root = tk.Tk()
-
     HeartDiseaseApp(root)
-
     root.mainloop()
 
 

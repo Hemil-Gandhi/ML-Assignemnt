@@ -10,10 +10,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = PROJECT_ROOT / "models"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 
-LOGISTIC_MODEL_PATH = MODELS_DIR / "logistic_regression_tuned.joblib"
-RANDOM_FOREST_MODEL_PATH = MODELS_DIR / "random_forest.joblib"
-HGB_MODEL_PATH = MODELS_DIR / "histgradientboosting_tuned.joblib"
 FINAL_TABULAR_MODEL_PATH = MODELS_DIR / "tabular_final_model.joblib"
+LOGISTIC_MODEL_PATH = MODELS_DIR / "logistic_regression_tuned.joblib"
 
 PTBXL_MODEL_PATH = MODELS_DIR / "ptbxl_cnn_baseline.pt"
 PTBXL_THRESHOLDS_PATH = REPORTS_DIR / "ptbxl_cnn_thresholds.json"
@@ -56,14 +54,20 @@ class ECGCNN(nn.Module):
         return x
 
 
-def load_tabular_models():
-    """Load all cardiovascular prediction models."""
+def load_tabular_model():
+    """Load the single final cardiovascular model (HistGradientBoosting)."""
+    return joblib.load(FINAL_TABULAR_MODEL_PATH)
 
+
+def load_tabular_models():
+    """Load compact tabular models (final + interpretable logistic).
+
+    NOTE: RandomForest (699MB, worst ROC) and duplicate HGB/logistic
+    copies were removed during simplification. Final == HGB-tuned.
+    """
     return {
-        "Logistic Regression": joblib.load(LOGISTIC_MODEL_PATH),
-        "Random Forest": joblib.load(RANDOM_FOREST_MODEL_PATH),
-        "HistGradientBoosting": joblib.load(HGB_MODEL_PATH),
         "Final Model": joblib.load(FINAL_TABULAR_MODEL_PATH),
+        "Logistic Regression": joblib.load(LOGISTIC_MODEL_PATH),
     }
 
 
